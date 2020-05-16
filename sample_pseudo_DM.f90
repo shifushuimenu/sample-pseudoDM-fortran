@@ -139,7 +139,7 @@ module sample_pseudo_DM
         do ii = 1, D 
             Ksites(ii) = ii 
         enddo 
-        call random_permutation(Ksites)
+        ! call random_permutation(Ksites)
 
         ! helper variables 
         allocate(Xinv(1:D,1:D))
@@ -358,11 +358,11 @@ program sample_kspace
     use sample_pseudo_DM
     implicit none 
     
-    integer :: Nsites = 144
-    integer :: Nx = 12
-    integer :: Ny = 12
-    integer :: Nsamples = 10
-    integer :: i,j, ss
+    integer :: Nsites
+    integer :: Nx
+    integer :: Ny
+
+    integer :: i,j, ss, sss
     real(dp), allocatable :: Green_xspace(:,:)
     complex(dp), allocatable :: Green_kspace(:,:)
     integer, allocatable :: occ_vector(:)
@@ -371,84 +371,50 @@ program sample_kspace
     real(dp) :: weight_factor
     real(dp), allocatable :: abs_corr(:)
     integer, allocatable :: Ksites(:), invKsites(:)
+    
+    character(len=30) :: filename 
+    integer :: max_HS_samples
+    integer :: Nsamples_per_HS
+    integer :: skip
+
+    namelist /simpara/ filename, Nsites, max_HS_samples, Nsamples_per_HS, skip 
+
+    open(100, file="simpara.in", status="old", action="read")
+    read(100, simpara)
+    close(100)
+
+    Nx = int(sqrt(float(Nsites)))
+    Ny = Nx
 
     allocate( Green_xspace(Nsites, Nsites) )
     allocate( Green_kspace(Nsites, Nsites) )
     allocate(occ_vector(Nsites))
     allocate(abs_corr(Nsites))
     allocate(Ksites(Nsites))
-    allocate(invKsites(Nsites))
-    allocate(occ_matrix(1-Nx/2:Nx/2, 1-Ny/2:Ny/2))
+    ! allocate(invKsites(Nsites))
+    ! allocate(occ_matrix(1-Nx/2:Nx/2, 1-Ny/2:Ny/2))
 
     call init_RNG
 
-    do ss = 1, Nsamples 
+    do ss = 1, max_HS_samples
 
-    Green_xspace = ZERO
-    open(50, file='Green_in.dat', status='old', action='read')
-    ! do i=1, Nsites 
-        read(50, *) Green_xspace
-        read(50, *)
-        read(50, *)
-    ! enddo 
-    close(50)
+        Green_xspace = ZERO
+        open(50, file='Green_in.dat', status='old', action='read')
+            read(50, *) Green_xspace
+            read(50, *)
+            read(50, *)
+        close(50)
 
-    call FT_GreensFunction(Green_xspace, Green_kspace)
+        call FT_GreensFunction(Green_xspace, Green_kspace)
 
-    ! Green_kspace = Green_xspace
-    print*, "Begin sampling" 
-    call sample_FF_GreensFunction(Green_kspace, occ_vector, abs_corr, Ksites, weight_phase, weight_factor)
+        ! Green_kspace = Green_xspace
+        do sss = 1, Nsamples_per_HS
+            call sample_FF_GreensFunction(Green_kspace, occ_vector, abs_corr, Ksites, weight_phase, weight_factor)
+        enddo 
 
-    do i=1, Nsites
-        invKsites(Ksites(i)) = i
-    enddo
-
-    open(100, file="KFock_samples_up.dat", status="unknown", position="append")
-    ! write(100, *) weight_phase, weight_factor, occ_vector(:)
-    write(100, *) 1.0, 1.0, 1.0, 1.0, occ_vector(:)
-    close(100)
-
-    do j = 1, Nsites
-        occ_matrix(listk(j,1), listk(j,2)) = occ_vector(j)
-    enddo   
-
-    open(101, file="occ_matrix.dat", status="unknown", position="rewind", action="write")
-    do j=1, Ny
-        write(101,*) (occ_matrix(j-Ny/2, i), i=1-Nx/2, Nx/2)
-    enddo 
-    close(101)
-
-    open(200, file='abs_corr.dat', status='unknown', position='rewind', action='write')
-    do j=1, Nsites 
-        write(200, *) j, abs_corr(invKsites(j))
-    enddo 
-    write(200,*) " "
-    write(200,*) " "
-    close(200)
-
-    open(60, file='Green_out.dat', status='unknown', action='write', position='rewind')
-    do i=1, Nsites 
-        write(60, *) aimag(Green_kspace(i,:))
-    enddo   
-    close(60)
-
-    open(70, file='MDF.dat', status='unknown', action='write', position='rewind')
-    do i=1, Nsites
-        write(70, *) listk(i,1), listk(i,2), real(Green_kspace(i,i)), aimag(Green_kspace(i,i))
-        if (mod(i,Nx) == 0) then 
-            write(70,*)
-        endif 
-    enddo 
-    close(70)
-
-    open(70, file='corr_matrix.dat', status='unknown', action='write', position='rewind')
-    do i=1, Nsites
-        write(70, *) listk(i,1), listk(i,2), abs_corr(invKsites(i))
-        if (mod(i,Nx) == 0) then 
-            write(70,*)
-        endif 
-    enddo 
-    close(70)
+        open(100, file="KFock_samples_up.dat", status="unknown", position="append")
+        write(100, *) real(weight_phase), aimag(weight_phase), weight_factor, occ_vector(:)
+        close(100)
 
     enddo
 

@@ -1,0 +1,17 @@
+! ==================================================
+! Input file for the code 
+!
+!         sample_pseudo_DM.f90.
+!
+! It generates pseudo snapshots from fermionic 
+! pseudo density matrices, which have been generated 
+! in a determinantal QMC simulation. 
+! ==================================================
+&simpara
+filename = 'list_of_sitearrays.txt'
+Nsites = 100
+max_HS_samples = 400
+Nsamples_per_HS = 200
+skip = 0
+/ 
+! Slash terminates namelist. Do not remove !
