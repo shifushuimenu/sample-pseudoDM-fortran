@@ -9,9 +9,9 @@
 ! ==================================================
 &simpara
 filename = 'list_of_sitearrays.txt'
-Nsites = 100
-max_HS_samples = 400
-Nsamples_per_HS = 200
+Nsites = 144
+max_HS_samples = 10
+Nsamples_per_HS = 1
 skip = 0
 / 
 ! Slash terminates namelist. Do not remove !

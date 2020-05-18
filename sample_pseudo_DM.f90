@@ -1,3 +1,4 @@
+
 module types
     implicit none 
 
@@ -5,6 +6,16 @@ module types
     integer, parameter :: ZERO = 0
 
 end module types 
+
+module parallelization
+    implicit none 
+
+    integer :: MPI_rank, MPI_size
+    integer :: ierr
+    character(len=5)  :: chr_rank
+    integer, parameter :: root_rank = 0
+
+end module parallelization 
 
 module util
     use types
@@ -183,8 +194,6 @@ module sample_pseudo_DM
             norm = sum(q_prob(0:1))
             q_prob(0:1) = q_prob(0:1) / norm
 
-            print*, "k, cond_prob(1), norm, corr=", k, cond_prob(1), norm, corr(k)
-
             call random_number(eta)
             if( eta < q_prob(1) ) then 
                 occ = 1 
@@ -237,16 +246,20 @@ module square_lattice_FT
     implicit none 
     private 
     public zexpiqr
-    public calc_FT_coeff 
-    public FT_GreensFunction
     public lq, nk, init
     public listk 
+
+    public calc_FT_coeff 
+    public FT_GreensFunction
+    public order_Ksites
 
     real(dp), parameter :: pi = dacos(-1.d0)
     integer :: l
     integer :: a1_p(2), a2_p(2)
     real(dp) :: b1_p(2), b2_p(2)
     integer, allocatable :: listk(:,:), list(:,:)
+    integer, allocatable :: invlistk(:,:)
+
     integer :: lq, nk
     complex(dp), allocatable :: zexpiqr(:,:)
     ! Are the FT coeff's initialized ? 
@@ -279,6 +292,7 @@ module square_lattice_FT
 
         allocate( zexpiqr(lq,nk) )
         allocate( listk(nk,2), list(lq,2) )
+        allocate( invlistk( 1-l/2 : l/2, 1-l/2 : l/2 ) )
 
         ir = 0
         do ix = 1,l
@@ -295,6 +309,7 @@ module square_lattice_FT
                 nk = nk + 1
                 listk(nk,1) = i - l/2 
                 listk(nk,2) = j - l/2
+                invlistk(listk(nk,1), listk(nk,2)) = nk
             enddo 
         enddo 
 
@@ -348,11 +363,69 @@ module square_lattice_FT
 
     end subroutine FT_GreensFunction
 
+    subroutine order_Ksites(Ksites)
+    ! Purpose:
+    ! --------
+    ! Order the momentum points in such a ways that momenta related 
+    ! by momentum inversion come in pairs, one after the other. 
+    !
+    ! Precondition:
+    ! The system is square, i.e. number oif sites is n = l*l
+    !
+    ! Arguments:
+    ! ----------
+        use types
+        integer, intent(out) :: Ksites(:)
+        integer :: i, j, l, n
+        integer :: k, k_inv
+        integer :: counter 
+        logical :: taken(size(Ksites,1))
+        integer :: Ksites_reordered(size(Ksites,1))
+        n = size(Ksites, 1)
+        l = nint( sqrt(dble(n)) )
+        
+        taken(:) = .false.
+        Ksites_reordered(:) = -1
+        
+        counter = 1
+        do k=1,n
+            if (.not.taken(k)) then 
+                Ksites_reordered(counter) = k
+                taken(k) = .true.
+                counter = counter + 1 
+            endif 
+            i = listk(k,1)
+            j = listk(k,2)
+            if (i < l/2) then 
+                i = -i
+            endif 
+            if (j < l/2) then 
+                j = -j
+            endif 
+            k_inv = invlistk(i,j)
+            if( .not.(taken(k_inv)) .and. (k_inv /= k) ) then 
+                Ksites_reordered(counter) = k_inv
+                taken(k_inv) = .true.
+                counter = counter + 1
+            endif 
+        enddo 
+
+        if (counter /= (n+1)) then 
+            print*, "order_Ksites(): ERROR: counter /= n+1"
+            stop
+        endif 
+
+        Ksites(:) = Ksites_reordered(:)
+
+    end subroutine order_Ksites
+
+
 end module square_lattice_FT
 
 
 program sample_kspace
     use types 
+    use parallelization
     use util
     use square_lattice_FT
     use sample_pseudo_DM
@@ -362,7 +435,7 @@ program sample_kspace
     integer :: Nx
     integer :: Ny
 
-    integer :: i,j, ss, sss
+    integer :: i,j, ss, sss, spin_idx
     real(dp), allocatable :: Green_xspace(:,:)
     complex(dp), allocatable :: Green_kspace(:,:)
     integer, allocatable :: occ_vector(:)
@@ -372,6 +445,7 @@ program sample_kspace
     real(dp), allocatable :: abs_corr(:)
     integer, allocatable :: Ksites(:), invKsites(:)
     
+    character(len=3)  :: chr_spin(1:2)
     character(len=30) :: filename 
     integer :: max_HS_samples
     integer :: Nsamples_per_HS
@@ -379,8 +453,25 @@ program sample_kspace
 
     namelist /simpara/ filename, Nsites, max_HS_samples, Nsamples_per_HS, skip 
 
+#if defined (USE_MPI)
+    include "mpif.h"
+    call MPI_INIT(ierr)
+    call MPI_COMM_RANK(MPI_COMM_WORLD, MPI_rank, ierr)
+    call MPI_COMM_SIZE(MPI_COMM_WORLD, MPI_size, ierr)
+#else
+    MPI_rank = 0
+    MPI_size = 1
+#endif 
+    write(chr_rank, "(i5.5)") MPI_rank
+    chr_spin(1) = "_up"
+    chr_spin(2) = "_dn"
+
+    ! Check that MPI is working correctly 
+    print*, "I am rank", MPI_rank, "of ", MPI_size
+
+    print*, "Reading parameter file..."
     open(100, file="simpara.in", status="old", action="read")
-    read(100, simpara)
+    read(100, nml=simpara)
     close(100)
 
     Nx = int(sqrt(float(Nsites)))
@@ -396,26 +487,41 @@ program sample_kspace
 
     call init_RNG
 
+    do spin_idx = 1, 2
+        open(50+spin_idx+MPI_rank, file="Green_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status='old', action='read')
+    enddo 
     do ss = 1, max_HS_samples
+        do spin_idx = 1, 2
+            if (ss > skip) then 
 
-        Green_xspace = ZERO
-        open(50, file='Green_in.dat', status='old', action='read')
-            read(50, *) Green_xspace
-            read(50, *)
-            read(50, *)
-        close(50)
+                print*, "MPI_rank=", MPI_rank, "of MPI_size", MPI_size, "spin_idx=", spin_idx, "HS_sample=", ss
+                Green_xspace = ZERO
+                read(50+spin_idx+MPI_rank, *) Green_xspace
+                read(50+spin_idx+MPI_rank, *)
+                read(50+spin_idx+MPI_rank, *)
+                print*, Green_xspace(1,1)
 
-        call FT_GreensFunction(Green_xspace, Green_kspace)
+                call FT_GreensFunction(Green_xspace, Green_kspace)
 
-        ! Green_kspace = Green_xspace
-        do sss = 1, Nsamples_per_HS
-            call sample_FF_GreensFunction(Green_kspace, occ_vector, abs_corr, Ksites, weight_phase, weight_factor)
+                ! Green_kspace = Green_xspace
+                do sss = 1, Nsamples_per_HS
+                    call sample_FF_GreensFunction(Green_kspace, occ_vector, abs_corr, Ksites, weight_phase, weight_factor)
+                enddo 
+
+                open(100, file="KFock_samples_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
+                write(100, *) 1.0, 1.0, real(weight_phase), aimag(weight_phase), weight_factor, occ_vector(:)
+                close(100)
+
+            endif 
         enddo 
-
-        open(100, file="KFock_samples_up.dat", status="unknown", position="append")
-        write(100, *) real(weight_phase), aimag(weight_phase), weight_factor, occ_vector(:)
-        close(100)
-
     enddo
+
+    do spin_idx = 1, 2
+        close(50+spin_idx+MPI_rank)
+    enddo
+
+#if defined(USE_MPI)
+    call MPI_FINALIZE(ierr)
+#endif 
 
 end program sample_kspace    
