@@ -9,8 +9,8 @@
 ! ==================================================
 &simpara
 filename = 'list_of_sitearrays.txt'
-Nsites = 144
-max_HS_samples = 10
+Nsites = 100
+max_HS_samples = 5
 Nsamples_per_HS = 1
 skip = 0
 / 

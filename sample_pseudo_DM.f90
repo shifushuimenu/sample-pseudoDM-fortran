@@ -90,157 +90,6 @@ module util
 end module util
 
 
-module sample_pseudo_DM
-    implicit none 
-    private 
-    public sample_FF_GreensFunction 
-
-    contains 
-    subroutine sample_FF_GreensFunction(G, occ_vector, abs_corr, Ksites, reweighting_phase, reweighting_factor)
-        use types 
-        use util
-        implicit none 
-        ! Arguments:
-        ! ----------
-        complex(dp), intent(in) :: G(:,:)
-        integer, intent(out) :: occ_vector(:)
-        real(dp), intent(out) :: abs_corr(:)
-        complex(dp), intent(out) :: reweighting_phase 
-        real(dp), intent(out) :: reweighting_factor        
-        ! REMOVE
-        integer, intent(out) :: Ksites(:)
-        ! REMOVE
-
-        ! ... Local Variables ...
-        integer :: D  ! dimension of the single-particle Hilbert space 
-        complex(dp), allocatable :: corr(:)  ! correction term taking care of correlations between different sites 
-        complex(dp), allocatable :: cond_prob(:)   ! conditional probability 
-        real(dp), allocatable :: q_prob(:)      ! absolute value of the conditional probability 
-        real(dp), allocatable :: phase_angle(:) ! phase angle of the conditional probability
-        complex(dp), allocatable :: phase(:)    ! exp(i phi(:))
-        real(dp) :: norm
-        real(dp) :: eta 
-        integer :: k, occ
-        ! CHANGE BACK
-        ! integer, allocatable :: Ksites(:)
-        ! CHANGE BACK        
-        complex(dp), allocatable :: Xinv(:,:)
-        complex(dp), allocatable :: Xinv_new(:,:)
-        complex(dp) :: gg
-        complex(dp), allocatable :: uu(:), vv(:)
-        integer :: ii, jj
-
-        ! check inputs 
-        D = size(G, 1)
-        if( size(G,1) /= size(G,2) ) then 
-            print*, "ERROR: Green's function must be square."
-        endif 
-        if( size(G,1) /= size(occ_vector,1) ) then 
-            print*, "ERROR: size(G,1) /= size(occ_vector,1)"
-        endif 
-
-        allocate(corr(D))
-        allocate(cond_prob(0:1))
-        allocate(q_prob(0:1))
-        allocate(phase_angle(0:1))
-        allocate(phase(0:1))
-        ! CHANGE BACK
-        ! allocate(Ksites(D))
-        ! CHANGE BACK
-        do ii = 1, D 
-            Ksites(ii) = ii 
-        enddo 
-        ! call random_permutation(Ksites)
-
-        ! helper variables 
-        allocate(Xinv(1:D,1:D))
-        allocate(Xinv_new(1:D,1:D))
-        allocate(uu(1:D))
-        allocate(vv(1:D))
-
-        corr = complex(ZERO, ZERO)
-        cond_prob = complex(ZERO, ZERO)
-        reweighting_factor = 1.0_dp
-        reweighting_phase = complex(1.0_dp, 0.0_dp)
-
-        occ_vector = -1 ! initialize to invalid value 
-        Xinv = complex(ZERO, ZERO)
-        Xinv_new = complex(ZERO, ZERO)
-
-        ! Componentwise direct sampling
-        do k = 1, D
-            ! "Correction" due to correlations between sites
-            if ( k == 1 ) then 
-                corr(1) = complex(ZERO, ZERO)
-            elseif ( k == 2) then
-                ! matmul() does not work for scalars 
-                corr(k) = G(k, Ksites(1)) * Xinv(1,1) * G(Ksites(1), k)
-            else
-                corr(k) = dot_product( G(k, Ksites(1:k-1)), matmul( Xinv(1:k-1, 1:k-1), G(Ksites(1:k-1), k) ) )
-            endif 
-        
-            cond_prob(1) = 1.0_dp - G(k,k) + corr(k)
-            cond_prob(0) = G(k,k) - corr(k)
-
-
-            ! Take care of quasi-probability distribution 
-            do ii = 0,1
-                phase_angle(ii) = atan2(real(cond_prob(ii)), aimag(cond_prob(ii)))
-                phase(ii) = complex(cos(phase_angle(ii)), sin(phase_angle(ii)))
-            enddo 
-            
-            ! Reweighting 
-            q_prob(0:1) = abs(cond_prob(0:1))
-            norm = sum(q_prob(0:1))
-            q_prob(0:1) = q_prob(0:1) / norm
-
-            call random_number(eta)
-            if( eta < q_prob(1) ) then 
-                occ = 1 
-                reweighting_phase = reweighting_phase * phase(1)
-            else
-                occ = 0
-                reweighting_phase = reweighting_phase * phase(0)
-            endif 
-            reweighting_factor = reweighting_factor * norm 
-
-            occ_vector(k) = occ 
-
-            if( k==1 ) then 
-                Xinv(1,1) = 1.0_dp / (G(1,1) - occ)
-            else
-                ! Low-rank update 
-                gg = 1.0_dp / (G(k,k) - occ - corr(k))
-                if ( k==2 ) then 
-                    ! matmul() does not work for scalars 
-                    uu(1) = Xinv(1,1) * G(Ksites(1), 2)
-                    vv(1) = G(2, Ksites(1)) * Xinv(1,1)
-                else
-                    uu(1:k-1) = matmul( Xinv(1:k-1,1:k-1), G(Ksites(1:k-1),k) )
-                    vv(1:k-1) = matmul( G(k, Ksites(1:k-1)), Xinv(1:k-1,1:k-1) )
-                endif 
-                do jj = 1, k-1
-                    do ii = 1, k-1
-                        Xinv_new(Ksites(ii), Ksites(jj)) = Xinv(Ksites(ii), Ksites(jj)) &
-                            + gg * uu(ii) * vv(jj)
-                    enddo 
-                enddo 
-                do ii = 1, k-1
-                    Xinv_new(k, Ksites(ii)) = -gg*vv(Ksites(ii))
-                    Xinv_new(Ksites(ii), k) = -gg*uu(Ksites(ii))
-                enddo
-                Xinv_new(k,k) = gg
-                Xinv(1:k, 1:k) = Xinv_new(1:k, 1:k)
-
-            endif 
-        enddo 
-
-        abs_corr(1:D) = abs(corr(1:D))
-
-    end subroutine 
-
-end module 
-
 module square_lattice_FT
     use types 
     implicit none 
@@ -363,19 +212,28 @@ module square_lattice_FT
 
     end subroutine FT_GreensFunction
 
-    subroutine order_Ksites(Ksites)
+    subroutine order_Ksites(Ksites, ordering)
     ! Purpose:
     ! --------
-    ! Order the momentum points in such a ways that momenta related 
-    ! by momentum inversion come in pairs, one after the other. 
+    ! Arrange momentum points in a certain order. 
+    !
+    ! odering = 'pair':    
+    !   Order the momentum points in such a ways that momenta related 
+    !   by momentum inversion come in pairs, one after the other. 
+    ! ordering = 'quad':
+    !   Order the momentum points such that the upper right quadrant 
+    !   (kx >=0, ky>=0) comes first. 
     !
     ! Precondition:
+    ! -------------
     ! The system is square, i.e. number oif sites is n = l*l
     !
     ! Arguments:
     ! ----------
         use types
         integer, intent(out) :: Ksites(:)
+        character(len=4) :: ordering 
+    ! ...Local variables... 
         integer :: i, j, l, n
         integer :: k, k_inv
         integer :: counter 
@@ -387,40 +245,234 @@ module square_lattice_FT
         taken(:) = .false.
         Ksites_reordered(:) = -1
         
-        counter = 1
-        do k=1,n
-            if (.not.taken(k)) then 
-                Ksites_reordered(counter) = k
-                taken(k) = .true.
-                counter = counter + 1 
-            endif 
-            i = listk(k,1)
-            j = listk(k,2)
-            if (i < l/2) then 
-                i = -i
-            endif 
-            if (j < l/2) then 
-                j = -j
-            endif 
-            k_inv = invlistk(i,j)
-            if( .not.(taken(k_inv)) .and. (k_inv /= k) ) then 
-                Ksites_reordered(counter) = k_inv
-                taken(k_inv) = .true.
-                counter = counter + 1
-            endif 
-        enddo 
+        select case(ordering)
 
-        if (counter /= (n+1)) then 
-            print*, "order_Ksites(): ERROR: counter /= n+1"
-            stop
-        endif 
+            case('pair')
+                counter = 1
+                do k=1,n
+                    if (.not.taken(k)) then 
+                        Ksites_reordered(counter) = k
+                        taken(k) = .true.
+                        counter = counter + 1 
+                    endif 
+                    i = listk(k,1)
+                    j = listk(k,2)
+                    if (i < l/2) then 
+                        i = -i
+                    endif 
+                    if (j < l/2) then 
+                        j = -j
+                    endif 
+                    k_inv = invlistk(i,j)
+                    if( .not.(taken(k_inv)) .and. (k_inv /= k) ) then 
+                        Ksites_reordered(counter) = k_inv
+                        taken(k_inv) = .true.
+                        counter = counter + 1
+                    endif 
+                enddo 
+        
+                if (counter /= (n+1)) then 
+                    print*, "order_Ksites(): ERROR: counter /= n+1"
+                    stop
+                endif         
+
+            case('quad')
+                counter = 1
+                do j=0,l/2
+                    do i=0,l/2
+                        k = invlistk(i,j)
+                        taken(k) = .true.
+                        Ksites_reordered(counter) = k
+                        counter = counter + 1
+                    enddo 
+                enddo
+                do k=1,n
+                    if( .not.taken(k) ) then 
+                        taken(k) = .true.                        
+                        Ksites_reordered(counter) = k
+                        counter = counter + 1
+                    endif 
+                enddo 
+
+                if (counter /= (n+1)) then 
+                    print*, "order_Ksites(): ERROR: counter /= n+1"
+                    stop
+                endif     
+
+            case default
+                do k=1,n 
+                    Ksites_reordered(k) = k
+                enddo 
+
+        end select 
 
         Ksites(:) = Ksites_reordered(:)
+        print*, "Ksites"
+        do k=1,n
+            print*, k, Ksites(k), listk(Ksites(k),1), listk(Ksites(k),2)
+        enddo 
+        stop
 
     end subroutine order_Ksites
 
-
 end module square_lattice_FT
+
+
+module sample_pseudo_DM
+    implicit none 
+    private 
+    public sample_FF_GreensFunction 
+
+    contains 
+    subroutine sample_FF_GreensFunction(G, occ_vector, abs_corr, Ksites, reweighting_phase, reweighting_factor)
+        use types 
+        use util
+        use square_lattice_FT, only: order_Ksites
+        implicit none 
+        ! Arguments:
+        ! ----------
+        complex(dp), intent(in) :: G(:,:)
+        integer, intent(out) :: occ_vector(:)
+        real(dp), intent(out) :: abs_corr(:)
+        complex(dp), intent(out) :: reweighting_phase 
+        real(dp), intent(out) :: reweighting_factor        
+        ! REMOVE
+        integer, intent(out) :: Ksites(:)
+        ! REMOVE
+
+        ! ... Local Variables ...
+        integer :: D  ! dimension of the single-particle Hilbert space 
+        complex(dp), allocatable :: corr(:)  ! correction term taking care of correlations between different sites 
+        complex(dp), allocatable :: cond_prob(:)   ! conditional probability 
+        real(dp), allocatable :: q_prob(:)      ! absolute value of the conditional probability 
+        real(dp), allocatable :: phase_angle(:) ! phase angle of the conditional probability
+        complex(dp), allocatable :: phase(:)    ! exp(i phi(:))
+        real(dp) :: norm
+        real(dp) :: eta 
+        integer :: k, occ
+        ! CHANGE BACK
+        ! integer, allocatable :: Ksites(:)
+        ! CHANGE BACK        
+        complex(dp), allocatable :: Xinv(:,:)
+        complex(dp), allocatable :: Xinv_new(:,:)
+        complex(dp) :: gg
+        complex(dp), allocatable :: uu(:), vv(:)
+        integer :: ii, jj
+
+        ! check inputs 
+        D = size(G, 1)
+        if( size(G,1) /= size(G,2) ) then 
+            print*, "ERROR: Green's function must be square."
+        endif 
+        if( size(G,1) /= size(occ_vector,1) ) then 
+            print*, "ERROR: size(G,1) /= size(occ_vector,1)"
+        endif 
+
+        allocate(corr(D))
+        allocate(cond_prob(0:1))
+        allocate(q_prob(0:1))
+        allocate(phase_angle(0:1))
+        allocate(phase(0:1))
+        ! CHANGE BACK
+        ! allocate(Ksites(D))
+        ! CHANGE BACK
+        do ii = 1, D 
+            Ksites(ii) = ii 
+        enddo 
+        ! call random_permutation(Ksites)
+        call order_Ksites(Ksites, 'quad')
+
+        ! helper variables 
+        allocate(Xinv(1:D,1:D))
+        allocate(Xinv_new(1:D,1:D))
+        allocate(uu(1:D))
+        allocate(vv(1:D))
+
+        corr = complex(ZERO, ZERO)
+        cond_prob = complex(ZERO, ZERO)
+        reweighting_factor = 1.0_dp
+        reweighting_phase = complex(1.0_dp, 0.0_dp)
+
+        occ_vector = -1 ! initialize to invalid value 
+        Xinv = complex(ZERO, ZERO)
+        Xinv_new = complex(ZERO, ZERO)
+
+        ! Componentwise direct sampling
+        do k = 1, D
+            ! "Correction" due to correlations between sites
+            if ( k == 1 ) then 
+                corr(1) = complex(ZERO, ZERO)
+            elseif ( k == 2) then
+                ! matmul() does not work for scalars 
+                corr(k) = G(k, Ksites(1)) * Xinv(1,1) * G(Ksites(1), k)
+            else
+                corr(k) = dot_product( G(k, Ksites(1:k-1)), matmul( Xinv(1:k-1, 1:k-1), G(Ksites(1:k-1), k) ) )
+            endif 
+        
+            cond_prob(1) = 1.0_dp - G(k,k) + corr(k)
+            cond_prob(0) = G(k,k) - corr(k)
+
+
+            ! Take care of quasi-probability distribution 
+            do ii = 0,1
+                phase_angle(ii) = atan2(real(cond_prob(ii)), aimag(cond_prob(ii)))
+                phase(ii) = complex(cos(phase_angle(ii)), sin(phase_angle(ii)))
+            enddo 
+            
+            ! Reweighting 
+            q_prob(0:1) = abs(cond_prob(0:1))
+            norm = sum(q_prob(0:1))
+            q_prob(0:1) = q_prob(0:1) / norm
+
+            call random_number(eta)
+            if( eta < q_prob(1) ) then 
+                occ = 1 
+                reweighting_phase = reweighting_phase * phase(1)
+            else
+                occ = 0
+                reweighting_phase = reweighting_phase * phase(0)
+            endif 
+            reweighting_factor = reweighting_factor * norm 
+
+            print*, k, "reweighting_factor=", reweighting_factor 
+
+            occ_vector(k) = occ 
+
+            if( k==1 ) then 
+                Xinv(1,1) = 1.0_dp / (G(1,1) - occ)
+            else
+                ! Low-rank update 
+                gg = 1.0_dp / (G(k,k) - occ - corr(k))
+                if ( k==2 ) then 
+                    ! matmul() does not work for scalars 
+                    uu(1) = Xinv(1,1) * G(Ksites(1), 2)
+                    vv(1) = G(2, Ksites(1)) * Xinv(1,1)
+                else
+                    uu(1:k-1) = matmul( Xinv(1:k-1,1:k-1), G(Ksites(1:k-1),k) )
+                    vv(1:k-1) = matmul( G(k, Ksites(1:k-1)), Xinv(1:k-1,1:k-1) )
+                endif 
+                do jj = 1, k-1
+                    do ii = 1, k-1
+                        Xinv_new(Ksites(ii), Ksites(jj)) = Xinv(Ksites(ii), Ksites(jj)) &
+                            + gg * uu(ii) * vv(jj)
+                    enddo 
+                enddo 
+                do ii = 1, k-1
+                    Xinv_new(k, Ksites(ii)) = -gg*vv(Ksites(ii))
+                    Xinv_new(Ksites(ii), k) = -gg*uu(Ksites(ii))
+                enddo
+                Xinv_new(k,k) = gg
+                Xinv(1:k, 1:k) = Xinv_new(1:k, 1:k)
+
+            endif 
+        enddo 
+
+        abs_corr(1:D) = abs(corr(1:D))
+
+    end subroutine 
+
+end module 
+
 
 
 program sample_kspace
