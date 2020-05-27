@@ -65,16 +65,20 @@ module util
         enddo 
     end subroutine 
 
-    subroutine init_RNG
+    subroutine init_RNG(MPI_rank)
     ! Purpose:
     ! --------
     !    Initialize the standard pseudo-random number generator 
-    !    with a seed obtained from the system time (at the millisecond level).
+    !    with a seed obtained from the system time (at the millisecond level)
+    !    and the MPI rank.
     !    Call the random number generator:
     !
     !        integer :: eta
     !        call random_number(eta)
     !
+    ! Arguments:
+    ! ----------
+    integer, intent(in) :: MPI_rank
     ! ... Local variables ...
         integer :: n, values(1:8)
         integer, allocatable :: seed(:)
@@ -82,7 +86,7 @@ module util
         call date_and_time(values=values)
         call random_seed(size=n)
         allocate(seed(n))
-        seed(1:n) = values(8) 
+        seed(1:n) = values(8) + MPI_rank
         call random_seed(put=seed)
 
     end subroutine init_RNG
@@ -286,6 +290,7 @@ module square_lattice_FT
                         counter = counter + 1
                     enddo 
                 enddo
+                ! the remaining BZ ...
                 do k=1,n
                     if( .not.taken(k) ) then 
                         taken(k) = .true.                        
@@ -299,6 +304,50 @@ module square_lattice_FT
                     stop
                 endif     
 
+            case('sqFS')
+                counter = 1
+                ! lower right edge
+                do i = 1, l/2, +1
+                    j = -l/2 + i
+                    k = invlistk(i, j)
+                    taken(k) = .true.
+                    Ksites_reordered(counter) = k
+                    counter = counter + 1 
+                enddo 
+                ! upper right edge 
+                do i = 0, l/2-1, +1
+                    j =  l/2 - i
+                    k = invlistk(i, j)
+                    taken(k) = .true.
+                    Ksites_reordered(counter) = k
+                    counter = counter + 1 
+                enddo 
+                ! lower left edge 
+                do i = -1, -l/2+1, -1
+                    j = -l/2 - i
+                    k = invlistk(i, j)
+                    taken(k) = .true.
+                    Ksites_reordered(counter) = k
+                    counter = counter + 1                     
+                enddo 
+                ! upper left edge 
+                do i = -1, -l/2+1, -1
+                    j = l/2 + i
+                    k = invlistk(i, j)
+                    taken(k) = .true.
+                    Ksites_reordered(counter) = k
+                    counter = counter + 1 
+                enddo 
+                ! the remaining BZ ...
+                do k=1,n
+                    if( .not.taken(k) ) then 
+                        taken(k) = .true.                        
+                        Ksites_reordered(counter) = k
+                        counter = counter + 1
+                    endif 
+                enddo 
+
+
             case default
                 do k=1,n 
                     Ksites_reordered(k) = k
@@ -307,11 +356,6 @@ module square_lattice_FT
         end select 
 
         Ksites(:) = Ksites_reordered(:)
-        print*, "Ksites"
-        do k=1,n
-            print*, k, Ksites(k), listk(Ksites(k),1), listk(Ksites(k),2)
-        enddo 
-        stop
 
     end subroutine order_Ksites
 
@@ -380,7 +424,10 @@ module sample_pseudo_DM
             Ksites(ii) = ii 
         enddo 
         ! call random_permutation(Ksites)
-        call order_Ksites(Ksites, 'quad')
+        call order_Ksites(Ksites, 'sqFS')
+        ! REMOVE
+        D = 2*int(sqrt(float(D))) - 2
+        ! REMOVE
 
         ! helper variables 
         allocate(Xinv(1:D,1:D))
@@ -393,7 +440,7 @@ module sample_pseudo_DM
         reweighting_factor = 1.0_dp
         reweighting_phase = complex(1.0_dp, 0.0_dp)
 
-        occ_vector = -1 ! initialize to invalid value 
+        occ_vector(:) = -1 ! initialize to invalid value 
         Xinv = complex(ZERO, ZERO)
         Xinv_new = complex(ZERO, ZERO)
 
@@ -404,13 +451,13 @@ module sample_pseudo_DM
                 corr(1) = complex(ZERO, ZERO)
             elseif ( k == 2) then
                 ! matmul() does not work for scalars 
-                corr(k) = G(k, Ksites(1)) * Xinv(1,1) * G(Ksites(1), k)
+                corr(k) = G(Ksites(k), Ksites(1)) * Xinv(1,1) * G(Ksites(1), Ksites(k))
             else
-                corr(k) = dot_product( G(k, Ksites(1:k-1)), matmul( Xinv(1:k-1, 1:k-1), G(Ksites(1:k-1), k) ) )
+                corr(k) = dot_product( G(Ksites(k), Ksites(1:k-1)), matmul( Xinv(1:k-1, 1:k-1), G(Ksites(1:k-1), Ksites(k)) ) )
             endif 
         
-            cond_prob(1) = 1.0_dp - G(k,k) + corr(k)
-            cond_prob(0) = G(k,k) - corr(k)
+            cond_prob(1) = 1.0_dp - G(Ksites(k), Ksites(k)) + corr(k)
+            cond_prob(0) = G(Ksites(k), Ksites(k)) - corr(k)
 
 
             ! Take care of quasi-probability distribution 
@@ -436,30 +483,30 @@ module sample_pseudo_DM
 
             print*, k, "reweighting_factor=", reweighting_factor 
 
-            occ_vector(k) = occ 
+            occ_vector(Ksites(k)) = occ 
 
             if( k==1 ) then 
-                Xinv(1,1) = 1.0_dp / (G(1,1) - occ)
+                Xinv(1,1) = 1.0_dp / (G(Ksites(1), Ksites(1)) - occ)
             else
                 ! Low-rank update 
-                gg = 1.0_dp / (G(k,k) - occ - corr(k))
+                gg = 1.0_dp / (G(Ksites(k), Ksites(k)) - occ - corr(k))
                 if ( k==2 ) then 
                     ! matmul() does not work for scalars 
-                    uu(1) = Xinv(1,1) * G(Ksites(1), 2)
-                    vv(1) = G(2, Ksites(1)) * Xinv(1,1)
+                    uu(1) = Xinv(1,1) * G(Ksites(1), Ksites(2))
+                    vv(1) = G(Ksites(2), Ksites(1)) * Xinv(1,1)
                 else
-                    uu(1:k-1) = matmul( Xinv(1:k-1,1:k-1), G(Ksites(1:k-1),k) )
-                    vv(1:k-1) = matmul( G(k, Ksites(1:k-1)), Xinv(1:k-1,1:k-1) )
+                    uu(1:k-1) = matmul( Xinv(1:k-1,1:k-1), G(Ksites(1:k-1), Ksites(k)) )
+                    vv(1:k-1) = matmul( G(Ksites(k), Ksites(1:k-1)), Xinv(1:k-1,1:k-1) )
                 endif 
                 do jj = 1, k-1
                     do ii = 1, k-1
-                        Xinv_new(Ksites(ii), Ksites(jj)) = Xinv(Ksites(ii), Ksites(jj)) &
+                        Xinv_new(ii, jj) = Xinv(ii, jj) &
                             + gg * uu(ii) * vv(jj)
                     enddo 
                 enddo 
                 do ii = 1, k-1
-                    Xinv_new(k, Ksites(ii)) = -gg*vv(Ksites(ii))
-                    Xinv_new(Ksites(ii), k) = -gg*uu(Ksites(ii))
+                    Xinv_new(k, ii) = -gg*vv(ii)
+                    Xinv_new(ii, k) = -gg*uu(ii)
                 enddo
                 Xinv_new(k,k) = gg
                 Xinv(1:k, 1:k) = Xinv_new(1:k, 1:k)
@@ -537,7 +584,7 @@ program sample_kspace
     ! allocate(invKsites(Nsites))
     ! allocate(occ_matrix(1-Nx/2:Nx/2, 1-Ny/2:Ny/2))
 
-    call init_RNG
+    call init_RNG(MPI_rank)
 
     do spin_idx = 1, 2
         open(50+spin_idx+MPI_rank, file="Green_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status='old', action='read')
@@ -560,7 +607,7 @@ program sample_kspace
                     call sample_FF_GreensFunction(Green_kspace, occ_vector, abs_corr, Ksites, weight_phase, weight_factor)
                 enddo 
 
-                open(100, file="KFock_samples_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
+                open(100, file="sqFS_KFock_samples_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
                 write(100, *) 1.0, 1.0, real(weight_phase), aimag(weight_phase), weight_factor, occ_vector(:)
                 close(100)
 
