@@ -79,6 +79,7 @@ module util
     ! Arguments:
     ! ----------
     integer, intent(in) :: MPI_rank
+
     ! ... Local variables ...
         integer :: n, values(1:8)
         integer, allocatable :: seed(:)
@@ -569,7 +570,7 @@ program sample_kspace
     print*, "I am rank", MPI_rank, "of ", MPI_size
 
     print*, "Reading parameter file..."
-    open(100, file="simpara.in", status="old", action="read")
+    open(100, file="simparams.in", status="old", action="read")
     read(100, nml=simpara)
     close(100)
 
