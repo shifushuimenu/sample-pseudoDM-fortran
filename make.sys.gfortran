@@ -1,0 +1,5 @@
+F90 = mpif90.openmpi
+MPI =  -DUSE_MPI
+FFLAGS = -O3 -cpp -g -p -fbounds-check ${MPI}
+LFLAGS = ${FFLAGS}
+
