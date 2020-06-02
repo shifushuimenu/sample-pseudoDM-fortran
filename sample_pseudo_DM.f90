@@ -550,6 +550,11 @@ program sample_kspace
     integer :: max_HS_samples
     integer :: Nsamples_per_HS
     integer :: skip
+    integer, parameter :: Nspin_species = 2
+
+    integer, allocatable :: occ_vector_tmp(:,:)
+    complex(dp), allocatable :: weight_phase_tmp(:)
+    real(dp), allocatable :: weight_factor_tmp(:)
 
     namelist /simpara/ filename, Nsites, max_HS_samples, Nsamples_per_HS, skip 
 
@@ -579,9 +584,14 @@ program sample_kspace
 
     allocate( Green_xspace(Nsites, Nsites) )
     allocate( Green_kspace(Nsites, Nsites) )
-    allocate(occ_vector(Nsites))
+    allocate( occ_vector(Nsites) )
     allocate(abs_corr(Nsites))
     allocate(Ksites(Nsites))
+
+    allocate( occ_vector_tmp(Nsites, Nsamples_per_HS) )
+    allocate( weight_factor_tmp(Nsamples_per_HS) )
+    allocate( weight_phase_tmp(Nsamples_per_HS) )
+
     ! allocate(invKsites(Nsites))
     ! allocate(occ_matrix(1-Nx/2:Nx/2, 1-Ny/2:Ny/2))
 
@@ -592,6 +602,9 @@ program sample_kspace
     enddo 
     do ss = 1, max_HS_samples
         do spin_idx = 1, 2
+            occ_vector_tmp(:,:) = ZERO
+            weight_factor_tmp(:) = ZERO
+            weight_phase_tmp(:) = cmplx(ZERO, ZERO)
             if (ss > skip) then 
 
                 print*, "MPI_rank=", MPI_rank, "of MPI_size", MPI_size, "spin_idx=", spin_idx, "HS_sample=", ss
@@ -606,10 +619,16 @@ program sample_kspace
                 ! Green_kspace = Green_xspace
                 do sss = 1, Nsamples_per_HS
                     call sample_FF_GreensFunction(Green_kspace, occ_vector, abs_corr, Ksites, weight_phase, weight_factor)
+                    occ_vector_tmp(:, sss) = occ_vector(:)
+                    weight_factor_tmp(sss) = weight_factor
+                    weight_phase_tmp(sss)  = weight_phase
                 enddo 
 
                 open(100, file="sqFS_KFock_samples_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
-                write(100, *) 1.0, 1.0, real(weight_phase), aimag(weight_phase), weight_factor, occ_vector(:)
+                do sss = 1, Nsamples_per_HS
+                    write(100, *) 1.0, 1.0, real(weight_phase_tmp(sss)), aimag(weight_phase_tmp(sss)), &
+                                  weight_factor_tmp(sss), occ_vector_tmp(:, sss)
+                enddo 
                 close(100)
 
             endif 
