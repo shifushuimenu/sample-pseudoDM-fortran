@@ -222,12 +222,15 @@ module square_lattice_FT
     ! --------
     ! Arrange momentum points in a certain order. 
     !
-    ! odering = 'pair':    
+    ! odering == 'pair':    
     !   Order the momentum points in such a ways that momenta related 
     !   by momentum inversion come in pairs, one after the other. 
-    ! ordering = 'quad':
+    ! ordering == 'quad':
     !   Order the momentum points such that the upper right quadrant 
     !   (kx >=0, ky>=0) comes first. 
+    ! ordering == 'sqFS': 
+    !   Order the momentum points such that the points on the diamond-shaped
+    !   Fermi surface of the square lattice at half filling come first. 
     !
     ! Precondition:
     ! -------------
@@ -348,6 +351,23 @@ module square_lattice_FT
                     endif 
                 enddo 
 
+            case('diag')
+                counter = 1
+                do i = 1-l/2, l/2, +1
+                    j = i
+                    k = invlistk(i, j)
+                    taken(k) = .true.
+                    Ksites_reordered(counter) = k 
+                    counter = counter + 1
+                enddo
+                ! the remaining BZ ...
+                do k=1,n
+                    if( .not.taken(k) ) then 
+                        taken(k) = .true.                        
+                        Ksites_reordered(counter) = k
+                        counter = counter + 1
+                    endif 
+                enddo 
 
             case default
                 do k=1,n 
@@ -424,11 +444,12 @@ module sample_pseudo_DM
         do ii = 1, D 
             Ksites(ii) = ii 
         enddo 
-        ! call random_permutation(Ksites)
+        !! call random_permutation(Ksites)
         call order_Ksites(Ksites, 'sqFS')
-        ! REMOVE
+        !! REMOVE
         D = 2*int(sqrt(float(D))) - 2
-        ! REMOVE
+        ! D = (2*int(sqrt(float(D))) - 2) / 2 + 1
+        !!! REMOVE
 
         ! helper variables 
         allocate(Xinv(1:D,1:D))
@@ -522,7 +543,6 @@ module sample_pseudo_DM
 end module 
 
 
-
 program sample_kspace
     use types 
     use parallelization
@@ -585,8 +605,8 @@ program sample_kspace
     allocate( Green_xspace(Nsites, Nsites) )
     allocate( Green_kspace(Nsites, Nsites) )
     allocate( occ_vector(Nsites) )
-    allocate(abs_corr(Nsites))
-    allocate(Ksites(Nsites))
+    allocate( abs_corr(Nsites) )
+    allocate( Ksites(Nsites) )
 
     allocate( occ_vector_tmp(Nsites, Nsamples_per_HS) )
     allocate( weight_factor_tmp(Nsamples_per_HS) )

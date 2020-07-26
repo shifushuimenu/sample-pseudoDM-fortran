@@ -9,7 +9,7 @@ default: all
 
 all: sample_pseudo_DM
 
-sample_pseudo_DM: sample_pseudo_DM.f90 make.sys.gfortran
+sample_pseudo_DM: sample_pseudo_DM.f90  make.sys.gfortran
 	${F90} ${LFLAGS} -o sample_pseudo_DM sample_pseudo_DM.f90
 
 
