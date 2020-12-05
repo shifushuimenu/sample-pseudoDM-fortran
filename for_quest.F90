@@ -1,7 +1,3 @@
-! IMPROVE: 
-! The Green's function from different samples should be taken from 
-! different time slices. 
-
 module types 
 implicit none 
 
@@ -9,6 +5,7 @@ integer, parameter :: dp = 8
 integer, parameter :: ZERO = 0
 
 end module types 
+
 
 module square_lattice_FT
     use types 
@@ -132,21 +129,58 @@ module square_lattice_FT
 
 end module square_lattice_FT
 
+
 module direct_sampling_pseudo_DM
+! --------------------------------------------------------------------------------        
+! Componentwise direct sampling of occupation number pseudo-snapshots 
+! from a pseudo-density matrix as it appears naturally 
+! in finite-temperature determinantal QMC simulations. 
+! 
+! Reference:
+! ==========
+!    Stephan Humeniuk and Yuan Wan: "Numerically exact quantum gas microscopy 
+!        of interacting lattice fermions", arXiv:2009.07377 (2020)
+!
+! 
+! Usage:
+! ------
+! The subroutine `run_sample_pseudo_DM` should be called in the 
+! measurement part of the determinantal QMC (DQMC). 
+! `Nsamples_per_HS` pseudo-snapshots per DQMC Monte Carlo step are output
+! into separate files for spin up and spin down. These files are understood to
+! be "synchronized", i.e. the snapshot for spin-up in the m-th line
+! of the file 
+!         `outfile_basename`//"ncpu"//`MPI_rank`_up.dat
+! is associated with the snapshot for spin-dn in the m-th line of 
+!         `outfile_basename`//"ncpu"//`MPI_rank`_dn.dat
+! 
+! In order to deal with the case that the simulated Hamiltonian exhibits itself 
+! a sign problem, the sign of the Monte Carlo weight for spin up and spin down 
+! should be provided by the calling DQMC outer loop so that it can be multiplied 
+! to the signed reweighting factors of the corresponding pseudo-snapshots.
+! 
+!--------------------------------------------------------------------------------
     use types
-    !REMOVE
     use square_lattice_FT
-    !REMOVE
     implicit none 
     private 
     public run_sample_pseudo_DM
 
     contains
+
 subroutine run_sample_pseudo_DM(G_up, G_dn, BSS_sign_up, BSS_sign_dn, sp_basis, &
     Nsamples_per_HS, outfile_basename, MPI_rank)
 ! Purpose:
 ! --------
-!
+!   This (driver) routine calls `sample_FF_GreensFunction` for both spin components 
+!   and makes sure that the snapshots, signs and reweighting factors for both spin 
+!   components are output into two files (one for `up` and one for `dn`) in a synchronized way.
+!   Care should be taken that the snapshots for the different spin components are 
+!   only combined if they come from the same Hubbard-Stratonovich (HS) sample since only in
+!   that case they are statistically independent. In other words, in one HS sample 
+!   the samples for different spin components can be combined arbitrarily (but across 
+!   different HS samples they must not be combined).
+
 ! Arguments:
 ! ----------
 real(dp), intent(in) :: G_up(:,:)      ! Green's function for spin up
@@ -154,8 +188,8 @@ real(dp), intent(in) :: G_dn(:,:)      ! Green's function for spin down
 real(dp), intent(in) :: BSS_sign_up    ! sign of the weight of the HS sample for spin up
 real(dp), intent(in) :: BSS_sign_dn    ! sign of the weight of the HS sample for spin dn
 character(len=*), intent(in) :: sp_basis  ! single-particle basis \in ["real_space", "momentum_space"]
-integer, intent(in) :: Nsamples_per_HS    ! number of occupation number states generated per HS sample 
-character(len=*), intent(in) :: outfile_basename
+integer, intent(in) :: Nsamples_per_HS    ! number of occupation number states generated per HS sample (10-100 is a good choice)
+character(len=*), intent(in) :: outfile_basename  ! base name of the output file for snapshots
 integer, intent(in) :: MPI_rank           ! MPI rank for labelling output files 
 
 ! ... Local variables ...
@@ -221,7 +255,7 @@ do spin_idx = 1, 2
 
     open(100, file=trim(outfile_basename)//"_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
     do sss = 1, Nsamples_per_HS
-        write(100, '(4(f16.8), *(i3))')  BSS_sign(spin_idx), real(weight_phase_tmp(sss)), aimag(weight_phase_tmp(sss)), &
+        write(100, '(4(f24.8, 6x), *(i3))')  BSS_sign(spin_idx), real(weight_phase_tmp(sss)), aimag(weight_phase_tmp(sss)), &
                         weight_factor_tmp(sss), ( occ_vector_tmp(i, sss), i = 1, Nsites )
     enddo 
     close(100)
@@ -233,23 +267,33 @@ end subroutine
 
 subroutine sample_FF_GreensFunction(G, occ_vector, abs_corr, Ksites, &
         reweighting_phase, reweighting_factor)
+    ! Purpose:
+    ! --------
+    ! Sample pseudo-snapshots from a free-fermion pseudo-density matrix using 
+    ! the single-particle Green's function for a given spin species as input. 
+    ! 
+    ! In general, the single-particle Green's function may be complex as is the case 
+    ! in the momentum basis. In that case there is a phase problem and 
+    ! every snapshot is associated a complex phase `exp(i phi) = a + 1j b` 
+    ! and a reweighting factor. 
+
     implicit none 
     ! Arguments:
     ! ----------
-    complex(dp), intent(in)  :: G(:,:)
-    integer, intent(out)     :: occ_vector(:)
+    complex(dp), intent(in)  :: G(:,:)              ! equal-time Green's function matrix. 
+    integer, intent(out)     :: occ_vector(:)       ! vector of occupation numbers for a given spin species 
     real(dp), intent(out)    :: abs_corr(:)
-    complex(dp), intent(out) :: reweighting_phase 
+    complex(dp), intent(out) :: reweighting_phase   ! "complex sign" of the snapshot 
     real(dp), intent(out)    :: reweighting_factor        
-    integer, intent(inout)   :: Ksites(:)
+    integer, intent(inout)   :: Ksites(:)           ! Factor ordering of the components. 
 
     ! ... Local Variables ...
     integer :: D  ! dimension of the single-particle Hilbert space 
     complex(dp), allocatable :: corr(:)  ! correction term taking care of correlations between different sites 
     complex(dp), allocatable :: cond_prob(:)   ! conditional probability 
-    real(dp), allocatable :: q_prob(:)      ! absolute value of the conditional probability 
-    real(dp), allocatable :: phase_angle(:) ! phase angle of the conditional probability
-    complex(dp), allocatable :: phase(:)    ! exp(i phi(:))
+    real(dp), allocatable :: q_prob(:)         ! absolute value of the conditional probability 
+    real(dp), allocatable :: phase_angle(:)    ! phase angle of the conditional probability
+    complex(dp), allocatable :: phase(:)       ! exp(i phi(:))
     real(dp) :: norm
     real(dp) :: eta 
     integer :: k, occ

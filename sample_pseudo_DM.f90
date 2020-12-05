@@ -234,7 +234,7 @@ module square_lattice_FT
     !
     ! Precondition:
     ! -------------
-    ! The system is square, i.e. number oif sites is n = l*l
+    ! The system is square, i.e. number of sites is n = l*l
     !
     ! Arguments:
     ! ----------
@@ -390,19 +390,27 @@ module sample_pseudo_DM
 
     contains 
     subroutine sample_FF_GreensFunction(G, occ_vector, abs_corr, Ksites, reweighting_phase, reweighting_factor)
+        ! Purpose:
+        ! --------
+        ! Sample pseudo-snapshots from a free-fermion pseudo-density matrix using 
+        ! the single-particle Green's function for a given spin species as input. 
+        ! In general, the single-particle Green's function may be complex as is the case 
+        ! in the momentum basis. In that case there is a phase problem and 
+        ! every snapshot is associated a complex phase `exp(i phi) = a + 1j b` 
+        ! and a reweighting factor. 
         use types 
         use util
         use square_lattice_FT, only: order_Ksites
         implicit none 
         ! Arguments:
         ! ----------
-        complex(dp), intent(in) :: G(:,:)
-        integer, intent(out) :: occ_vector(:)
-        real(dp), intent(out) :: abs_corr(:)
+        complex(dp), intent(in) :: G(:,:)                  ! Green's function matrix.
+        integer, intent(out) :: occ_vector(:)              ! vector of occupation numbers for given spin species.
+        real(dp), intent(out) :: abs_corr(:)               
         complex(dp), intent(out) :: reweighting_phase 
         real(dp), intent(out) :: reweighting_factor        
         ! REMOVE
-        integer, intent(out) :: Ksites(:)
+        integer, intent(out) :: Ksites(:)                  ! Factor ordering of the components. 
         ! REMOVE
 
         ! ... Local Variables ...
