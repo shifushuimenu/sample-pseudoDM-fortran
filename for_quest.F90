@@ -159,7 +159,7 @@ module direct_sampling_pseudo_DM
 ! should be provided by the calling DQMC outer loop so that it can be multiplied 
 ! to the signed reweighting factors of the corresponding pseudo-snapshots.
 ! 
-!--------------------------------------------------------------------------------
+! --------------------------------------------------------------------------------        
     use types
     use square_lattice_FT
     implicit none 
@@ -224,7 +224,7 @@ chr_spin(1) = "_up"
 chr_spin(2) = "_dn"
 
 ! Check that MPI is working correctly 
-print*, "I am rank", MPI_rank
+! print*, "I am rank", MPI_rank
 
 ! assuming a square system
 Nsites = size(G_up, dim=1)
@@ -259,9 +259,15 @@ do spin_idx = 1, 2
     open(100, file=trim(outfile_basename)//"_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
     do sss = 1, Nsamples_per_HS
         if (.not.init_outfiles) then 
+        rewind(100)
         write(100, *) "Pseudo-snapshots for spin"//chr_spin(spin_idx)//":"
-        write(100, *) "BSS_sign    real(exp(i*sampling_phase))       aimag(exp(i*sampling_phase))     reweighting_factor    occ_vector(1:Nsites)"
-        write(100, *) "========================================================================================================================="
+        write(100, *) "(Each line needs to be combined with the matching line from the file for spin dn)"
+        write(100, *) "=================================================================================================="&
+                         //"=============================="
+        write(100, *) "BSS_sign    real(exp(i*sampling_phase))       aimag(exp(i*sampling_phase))     reweighting_factor "&
+                         //"   occupation_number(1:Nsites)"
+        write(100, *) "=================================================================================================="&
+                         //"=============================="
         init_outfiles = .true.
         endif 
         write(100, '(4(f24.8, 6x), *(i3))')  BSS_sign(spin_idx), real(weight_phase_tmp(sss)), aimag(weight_phase_tmp(sss)), &
@@ -346,7 +352,7 @@ subroutine sample_FF_GreensFunction(G, occ_vector, abs_corr, Ksites, &
     corr = cmplx(ZERO, ZERO)
     cond_prob = cmplx(ZERO, ZERO)
     reweighting_factor = 1.0_dp
-    reweighting_phase = cmplx(1.0_dp, 0.0_dp)
+    reweighting_phase = cmplx(1.0_dp, 0.0_dp, kind=dp)
 
     occ_vector(:) = -1 ! initialize to invalid value 
     Xinv = cmplx(ZERO, ZERO)
@@ -371,7 +377,7 @@ subroutine sample_FF_GreensFunction(G, occ_vector, abs_corr, Ksites, &
         ! Take care of quasi-probability distribution 
         do ii = 0,1
             phase_angle(ii) = atan2(real(cond_prob(ii)), aimag(cond_prob(ii)))
-            phase(ii) = cmplx(cos(phase_angle(ii)), sin(phase_angle(ii)))
+            phase(ii) = cmplx(cos(phase_angle(ii)), sin(phase_angle(ii)), kind=dp)
         enddo 
         
         ! Reweighting 
