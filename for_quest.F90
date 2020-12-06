@@ -205,11 +205,13 @@ complex(dp) :: weight_phase
 real(dp) :: weight_factor
 real(dp) :: abs_corr(size(G_up, dim=1))
 integer :: Ksites(size(G_up, dim=1))
-real(dp) :: BSS_sign(1:2)
 
-character(len=3)  :: chr_spin(1:2)
-character(len=5)  :: chr_rank
 integer, parameter :: Nspin_species = 2
+real(dp) :: BSS_sign(1:Nspin_species)
+character(len=3)  :: chr_spin(1:Nspin_species)
+character(len=5)  :: chr_rank
+
+logical, save :: init_outfiles = .false.
 
 integer :: occ_vector_tmp(size(G_up, dim=1), Nsamples_per_HS)
 complex(dp) :: weight_phase_tmp(Nsamples_per_HS)
@@ -253,8 +255,15 @@ do spin_idx = 1, 2
         weight_phase_tmp(sss)  = weight_phase
     enddo 
 
+
     open(100, file=trim(outfile_basename)//"_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
     do sss = 1, Nsamples_per_HS
+        if (.not.init_outfiles) then 
+        write(100, *) "Pseudo-snapshots for spin"//chr_spin(spin_idx)//":"
+        write(100, *) "BSS_sign    real(exp(i*sampling_phase))       aimag(exp(i*sampling_phase))     reweighting_factor    occ_vector(1:Nsites)"
+        write(100, *) "========================================================================================================================="
+        init_outfiles = .true.
+        endif 
         write(100, '(4(f24.8, 6x), *(i3))')  BSS_sign(spin_idx), real(weight_phase_tmp(sss)), aimag(weight_phase_tmp(sss)), &
                         weight_factor_tmp(sss), ( occ_vector_tmp(i, sss), i = 1, Nsites )
     enddo 
