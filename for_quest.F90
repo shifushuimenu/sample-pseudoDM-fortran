@@ -51,8 +51,8 @@ module square_lattice_FT
         nk = l*l ! (l+1)*(l+1)
         a1_p(1) = 1 ; a1_p(2) = 0
         a2_p(1) = 0 ; a2_p(2) = 1
-        b1_p(1) = 2.d0*pi/dble(l) ; b1_p(2) = 0.d0
-        b2_p(1) = 0.d0            ; b2_p(2) = 2.d0*pi/dble(l)
+        b1_p(1) = 2.0_dp*pi/dble(l) ; b1_p(2) = 0.0_dp
+        b2_p(1) = 0.0_dp            ; b2_p(2) = 2.0_dp*pi/dble(l)
 
         allocate( zexpiqr(lq,nk) )
         allocate( listk(nk,2), list(lq,2) )
@@ -81,7 +81,7 @@ module square_lattice_FT
             qvec = dble(listk(iq,1))*b1_p + dble(listk(iq,2))*b2_p
             do i = 1, lq
                 ri = dble(list(i,1))*a1_p + dble(list(i,2))*a2_p
-                zexpiqr(i,iq) = exp( dcmplx( 0.d0, qvec(1)*ri(1) + qvec(2)*ri(2) )  ) / sqrt(dble(lq))
+                zexpiqr(i,iq) = exp( dcmplx( 0.0_dp, qvec(1)*ri(1) + qvec(2)*ri(2) )  ) / sqrt(dble(lq))
             enddo 
         enddo 
 
@@ -276,6 +276,10 @@ subroutine sample_FF_GreensFunction(G, occ_vector, abs_corr, Ksites, &
     ! in the momentum basis. In that case there is a phase problem and 
     ! every snapshot is associated a complex phase `exp(i phi) = a + 1j b` 
     ! and a reweighting factor. 
+    ! 
+    ! Irrespective of the factor ordering during the componentwise sampling, 
+    ! the sites in the output vector of occupation numbers are ordered in the same 
+    ! manner as the sites in the input Green's function matrix. 
 
     implicit none 
     ! Arguments:
@@ -341,7 +345,7 @@ subroutine sample_FF_GreensFunction(G, occ_vector, abs_corr, Ksites, &
 
     ! Componentwise direct sampling
     do k = 1, D
-        ! "Correction" due to correlations between sites
+        ! "Correction term" due to correlations between components, i.e. sites
         if ( k == 1 ) then 
             corr(1) = cmplx(ZERO, ZERO)
         elseif ( k == 2) then
