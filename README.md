@@ -1,6 +1,6 @@
 # sample-pseudoDM-fortran
 
-Code for nested componetwise sampling for occupation number states from pseudo free fermion density matrices 
+Code for nested componentwise direct sampling for occupation number states from pseudo free fermion density matrices 
 as they arise naturally in finite-temperature determinantal QMC simulations.
 
 From the QUEST determinantal QMC code the provided driver subroutine could be called like 
@@ -14,3 +14,9 @@ so in the subroutine `DQMC_Phy0_Meas`:
 
 Then it will write the snapshots for spin-up and spin-down in two "synchronized" files together
 with the sign and reweighting factor. 
+
+If you use this code, please cite:
+==================================
+    Stephan Humeniuk and Yuan Wan: "Numerically exact quantum gas microscopy 
+                    of interacting lattice fermions", arXiv:2009.07377 (2020)
+
