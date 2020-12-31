@@ -158,7 +158,10 @@ module direct_sampling_pseudo_DM
 ! a sign problem, the sign of the Monte Carlo weight for spin up and spin down 
 ! should be provided by the calling DQMC outer loop so that it can be multiplied 
 ! to the signed reweighting factors of the corresponding pseudo-snapshots.
-! 
+!
+!
+! For comments / questions please contact:
+!       E-mail: stephan.humeniuk@gmail.com
 ! --------------------------------------------------------------------------------        
     use types
     use square_lattice_FT
