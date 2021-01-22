@@ -1,6 +1,6 @@
 # sample-pseudoDM-fortran
 
-Code for nested componentwise direct sampling for occupation number states from pseudo free fermion density matrices 
+Subroutines for nested componentwise direct sampling for occupation number states from pseudo free fermion density matrices 
 as they arise naturally in finite-temperature determinantal QMC simulations.
 
 From the QUEST determinantal QMC code (-> http://quest.ucdavis.edu/index.html) 
