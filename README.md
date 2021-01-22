@@ -17,7 +17,7 @@ Then it will write the snapshots for spin-up and spin-down in two "synchronized"
 with the sign and reweighting factor. 
 
 If you use this code, please cite:
-==================================
+----------------------------------
     Stephan Humeniuk and Yuan Wan: "Numerically exact quantum gas microscopy 
                     of interacting lattice fermions", arXiv:2009.07377 (2020)
 
