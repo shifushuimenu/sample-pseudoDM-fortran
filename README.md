@@ -14,7 +14,7 @@ so in the subroutine `DQMC_Phy0_Meas`:
 
 
 Then it will write the snapshots for spin-up and spin-down in two "synchronized" files together
-with the sign and reweighting factor. 
+with the sign and reweighting factor. Further documentation can be found in the source code itself.
 
 If you use this code, please cite:
 ----------------------------------
