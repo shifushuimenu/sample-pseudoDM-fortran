@@ -30,7 +30,14 @@ the files `Green_ncpu00000_up.dat` and `Green_ncpu00000_dn.dat`. The two files c
 of Green's function matrices for spin up and spin down in a synchronized fashion, i.e. the n-th 
 Green's function in the "up-file" must be combined with the n-th Green's function in the "down-file". 
 Successive Green's functions are separated by two empty lines.
-The five-digit code labels DQMC output from different CPUs, parallelized via MPI. 
+The five-digit number code labels DQMC output from different CPUs, parallelized via MPI, and 
+the code for sampling of fermionic pseudosnapshots can be run with the same number of CPUs
+by calling 
+```
+mpiexec.openmpi -np 1 ./sample_pseudo_DM
+```
+
+
 
 Interfacing with the QUantum Electron Simulation Toolbox (QUEST) DQMC code:
 ----------------------------------------------------------------------------
