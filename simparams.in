@@ -10,7 +10,7 @@
 &simpara
 filename = 'list_of_sitearrays.txt' ! this file is not necessary 
 Nsites = 144
-max_HS_samples = 25
+max_HS_samples = 12
 Nsamples_per_HS = 10
 skip = 0
 / 

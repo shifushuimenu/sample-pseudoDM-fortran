@@ -221,6 +221,8 @@ module square_lattice_FT
     ! Purpose:
     ! --------
     ! Arrange momentum points in a certain order. 
+    ! This subroutine is only useful if you wish to sample in momentum
+    ! space, which does not really work as well as in real space. 
     !
     ! odering == 'pair':    
     !   Order the momentum points in such a ways that momenta related 
@@ -452,12 +454,9 @@ module sample_pseudo_DM
         do ii = 1, D 
             Ksites(ii) = ii 
         enddo 
+
         !! call random_permutation(Ksites)
-        call order_Ksites(Ksites, 'sqFS')
-        !! REMOVE
-        D = 2*int(sqrt(float(D))) - 2
-        ! D = (2*int(sqrt(float(D))) - 2) / 2 + 1
-        !!! REMOVE
+        !! call order_Ksites(Ksites, 'sqFS')
 
         ! helper variables 
         allocate(Xinv(1:D,1:D))
@@ -510,8 +509,6 @@ module sample_pseudo_DM
                 reweighting_phase = reweighting_phase * phase(0)
             endif 
             reweighting_factor = reweighting_factor * norm 
-
-            print*, k, "reweighting_factor=", reweighting_factor 
 
             occ_vector(Ksites(k)) = occ 
 
@@ -640,7 +637,6 @@ program sample_kspace
                 read(50+spin_idx+MPI_rank, *) Green_xspace
                 read(50+spin_idx+MPI_rank, *)
                 read(50+spin_idx+MPI_rank, *)
-                print*, Green_xspace(1,1)
 
                 ! uncomment, if you want to sample in momentum space
                 ! call FT_GreensFunction(Green_xspace, Green_kspace)

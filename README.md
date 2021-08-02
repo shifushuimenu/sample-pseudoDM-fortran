@@ -42,12 +42,12 @@ The number of snapshots to be generated can be set in the input file
 ```
 filename = 'list_of_sitearrays.txt'   ! Here, a subset of sites for sampling can be selected (currently not used)
 Nsites = 144                          ! Total number of sites, 12x12=144
-max_HS_samples = 25                   ! Read a maximum number of Green's functions from the files Green_ncpuXXXXX_up(dn).dat  
+max_HS_samples = 12                   ! Read a maximum number of Green's functions from the files Green_ncpuXXXXX_up(dn).dat  
 Nsamples_per_HS = 10                  ! Generate `Nsamples_per_HS` number of occupation number snapshots per Green's function                   
 skip = 0                              ! Discard the first `skip` number of Green's function 
 
 ```
-With the above settings 250 snapshots will be generated per CPU. 
+With the above settings 120 snapshots will be generated per CPU. 
 The snapshots will be written line-by-line into two synchronized files for spin up and spin down
 called `Fock_samples_ncpuXXXXX_up.dat` and `Fock_samples_ncpuXXXXX_dn.dat`. The first two entries 
 in each line are the sign and the reweighting factor. 
