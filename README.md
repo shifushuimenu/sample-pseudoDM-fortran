@@ -1,11 +1,10 @@
 # sample-pseudoDM-fortran
-
-<img src="_resources/titlepage.png" width="400">
+<img src="_resources/titlepage.png" width="600">
 
 Subroutines for nested componentwise direct sampling for occupation number states from pseudo free fermion density matrices 
 as they arise naturally in finite-temperature determinantal QMC simulations.
 
-From the QUEST determinantal QMC code (-> http://quest.ucdavis.edu/index.html) 
+From the open-source QUEST determinantal QMC code (-> http://quest.ucdavis.edu/index.html) 
 the provided driver subroutine could be called like 
 so in the subroutine `DQMC_Phy0_Meas`:
 
