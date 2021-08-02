@@ -3,8 +3,6 @@
 
 include ./make.sys.gfortran
 
-module = 
-
 default: all
 
 all: sample_pseudo_DM
