@@ -642,9 +642,10 @@ program sample_kspace
                 read(50+spin_idx+MPI_rank, *)
                 print*, Green_xspace(1,1)
 
-                call FT_GreensFunction(Green_xspace, Green_kspace)
+                ! uncomment, if you want to sample in momentum space
+                ! call FT_GreensFunction(Green_xspace, Green_kspace)
+                Green_kspace = Green_xspace
 
-                ! Green_kspace = Green_xspace
                 do sss = 1, Nsamples_per_HS
                     call sample_FF_GreensFunction(Green_kspace, occ_vector, abs_corr, Ksites, weight_phase, weight_factor)
                     occ_vector_tmp(:, sss) = occ_vector(:)
@@ -652,7 +653,7 @@ program sample_kspace
                     weight_phase_tmp(sss)  = weight_phase
                 enddo 
 
-                open(100, file="sqFS_KFock_samples_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
+                open(100, file="Fock_samples_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
                 do sss = 1, Nsamples_per_HS
                     write(100, *) 1.0, 1.0, real(weight_phase_tmp(sss)), aimag(weight_phase_tmp(sss)), &
                                   weight_factor_tmp(sss), occ_vector_tmp(:, sss)
