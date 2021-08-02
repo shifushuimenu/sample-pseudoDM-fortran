@@ -41,6 +41,7 @@ mpiexec.openmpi -np 1 ./sample_pseudo_DM
 
 Interfacing with the QUantum Electron Simulation Toolbox (QUEST) DQMC code:
 ----------------------------------------------------------------------------
+All relevant subroutines are in `NCDS_for_quest.F90`. 
 
 From the open-source QUEST determinantal QMC code (-> http://quest.ucdavis.edu/index.html) 
 the provided driver subroutine could be called like 
