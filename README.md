@@ -69,8 +69,12 @@ so in the subroutine `DQMC_Phy0_Meas`:
            MPI_rank=qmc_sim%rank )
 
 
-Then it will write the snapshots for spin-up and spin-down in two "synchronized" files together
+Then it will write the pseudo-napshots for spin-up and spin-down in two "synchronized" files together
 with the sign and reweighting factor.
+
+
+Visualizing the pseudo-snapshots:
+---------------------------------
 
 If you use this code, please cite:
 ----------------------------------
