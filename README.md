@@ -9,7 +9,22 @@ The code can be used in two forms, either
 1. as a stand-alone code, which uses as input the Green's functions which have been output and written 
    on disk during a previous DQMC run or 
 2. directly called from a DQMC code so that fermionic snapshots are output "on the fly".    
+The two use cases are descibed in the following.
 
+Reading Green's function from a previous DQMC run:
+--------------------------------------------------
+
+`simparams.in`
+
+The equal-time Green's function for spin up and spin down is assumed to be stored in 
+the files `Green_ncpu00000_up.dat` and `Green_ncpu00000_dn.dat`. The two files contains a stream 
+of Green's function matrices for spin up and spin down in a synchronized fashion, i.e. the n-th 
+Green's function in the "up-file" must be combined with the n-th Green's function in the "down-file". 
+Successive Green's functions are separated by two empty lines.
+The five-digit code labels DQMC output from different CPUs, parallelized via MPI. 
+
+Interfacing with the QUantum Electron Simulation Toolbox (QUEST) DQMC code:
+----------------------------------------------------------------------------
 
 From the open-source QUEST determinantal QMC code (-> http://quest.ucdavis.edu/index.html) 
 the provided driver subroutine could be called like 
