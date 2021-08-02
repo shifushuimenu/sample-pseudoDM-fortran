@@ -1,8 +1,15 @@
-# sample-pseudoDM-fortran
+# Generating fermionic pseudo-snapshots
 <img src="_resources/titlepage.png" width="600">
 
-Subroutines for nested componentwise direct sampling for occupation number states from pseudo free fermion density matrices 
-as they arise naturally in finite-temperature determinantal QMC simulations.
+This repository contains subroutines for nested componentwise direct sampling (NCDS) of
+occupation number states from pseudo free-fermion density matrices 
+as they arise naturally in finite-temperature determinantal QMC (DQMC) simulations.
+
+The code can be used in two forms, either 
+1. as a stand-alone code, which uses as input the Green's functions which have been output and written 
+   on disk during a previous DQMC run or 
+2. directly called from a DQMC code so that fermionic snapshots are output "on the fly".    
+
 
 From the open-source QUEST determinantal QMC code (-> http://quest.ucdavis.edu/index.html) 
 the provided driver subroutine could be called like 
