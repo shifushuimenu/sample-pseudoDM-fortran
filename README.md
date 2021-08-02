@@ -19,7 +19,7 @@ Compile the code `sample_pseudo_DM.f90` with MPI support by calling
 make
 ```
 This requires that you have `mpif90` installed. The resulting executable is called `sample_pseudo_DM`. 
-Then, copy the provided test data (see below for a description)
+Then, copy the provided test data for a 12x12 system at U/t=4, inverse temperature = 4 / t and half filling
 ```
 cp _resources/U4.0_mu0.0_L12_beta4.0/Green_ncpu00000_*.dat .
 ```
@@ -41,7 +41,7 @@ The number of snapshots to be generated can be set in the input file
 `simparams.in`.
 ```
 filename = 'list_of_sitearrays.txt'   ! Here, a subset of sites for sampling can be selected (currently not used)
-Nsites = 144                          ! Total number of sites 
+Nsites = 144                          ! Total number of sites, 12x12=144
 max_HS_samples = 25                   ! Read a maximum number of Green's functions from the files Green_ncpuXXXXX_up(dn).dat  
 Nsamples_per_HS = 10                  ! Generate `Nsamples_per_HS` number of occupation number snapshots per Green's function                   
 skip = 0                              ! Discard the first `skip` number of Green's function 
@@ -70,7 +70,7 @@ so in the subroutine `DQMC_Phy0_Meas`:
 
 
 Then it will write the snapshots for spin-up and spin-down in two "synchronized" files together
-with the sign and reweighting factor. Further documentation can be found in the source code itself.
+with the sign and reweighting factor.
 
 If you use this code, please cite:
 ----------------------------------
