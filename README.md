@@ -14,6 +14,11 @@ The two use cases are descibed in the following.
 
 Reading Green's function from a previous DQMC run:
 --------------------------------------------------
+Compile the code `sample_pseudo_DM.f90` with MPI support by calling 
+```
+make
+```
+This requires that you have `mpif90` installed. 
 
 `simparams.in`
 ```
@@ -26,17 +31,17 @@ skip = 0                              ! Discard the first `skip` number of Green
 ```
 
 The equal-time Green's function in real space for spin up and spin down is assumed to be stored in 
-the files `Green_ncpu00000_up.dat` and `Green_ncpu00000_dn.dat`. The two files contain a stream 
+the files `Green_ncpuXXXXX_up.dat` and `Green_ncpuXXXXX_dn.dat`. The two files contain a stream 
 of Green's function matrices for spin up and spin down in a synchronized fashion, i.e. the n-th 
 Green's function in the "up-file" must be combined with the n-th Green's function in the "down-file". 
 Successive Green's functions are separated by two empty lines.
-The five-digit number code labels DQMC output from different CPUs, parallelized via MPI, and 
+The five-digit number code XXXXX labels DQMC output from different CPUs, parallelized via MPI, and 
 the code for sampling of fermionic pseudosnapshots can be run with the same number of CPUs
 by calling 
 ```
 mpiexec.openmpi -np 1 ./sample_pseudo_DM
 ```
-
+(We have only one set of Green's functions as test data, so we use only one CPU here.)
 
 
 Interfacing with the QUantum Electron Simulation Toolbox (QUEST) DQMC code:
