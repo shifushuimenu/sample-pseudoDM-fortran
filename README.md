@@ -1,5 +1,7 @@
 # sample-pseudoDM-fortran
 
+<img "_resources/titlepage.pdf" width="400">
+
 Subroutines for nested componentwise direct sampling for occupation number states from pseudo free fermion density matrices 
 as they arise naturally in finite-temperature determinantal QMC simulations.
 
@@ -18,6 +20,15 @@ with the sign and reweighting factor. Further documentation can be found in the 
 
 If you use this code, please cite:
 ----------------------------------
-    Stephan Humeniuk and Yuan Wan: "Numerically exact quantum gas microscopy 
-                    of interacting lattice fermions", arXiv:2009.07377 (2020)
+```
+@article{arXiv:2009.07377,
+      title={Numerically exact quantum gas microscopy for interacting lattice fermions}, 
+      author={Stephan Humeniuk and Yuan Wan},
+      year={2020},
+      eprint={2009.07377},
+      archivePrefix={arXiv},
+      primaryClass={cond-mat.quant-gas}
+}
+```
+
 
