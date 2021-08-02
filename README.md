@@ -21,11 +21,11 @@ make
 This requires that you have `mpif90` installed. The resulting executable is called `sample_pseudo_DM`. 
 Then, copy the provided test data for a 12x12 system at U/t=4, inverse temperature = 4 / t and half filling
 ```
-cp _resources/U4.0_mu0.0_L12_beta4.0/GreenF_ncpu00000_*.dat .
+cp _resources/U4.0_mu0.0_L12_beta4.0/Green_ncpu00000_*.dat .
 ```
 
 The equal-time Green's function in real space for spin up and spin down is assumed to be stored in 
-the files `GreenF_ncpuXXXXX_up.dat` and `GreenF_ncpuXXXXX_dn.dat`. The two files contain a stream 
+the files `Green_ncpuXXXXX_up.dat` and `Green_ncpuXXXXX_dn.dat`. The two files contain a stream 
 of Green's function matrices for spin up and spin down in a synchronized fashion, i.e. the n-th 
 Green's function in the "up-file" must be combined with the n-th Green's function in the "down-file". 
 Successive Green's functions are separated by two empty lines.
