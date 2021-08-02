@@ -18,16 +18,10 @@ Compile the code `sample_pseudo_DM.f90` with MPI support by calling
 ```
 make
 ```
-This requires that you have `mpif90` installed. 
-
-`simparams.in`
+This requires that you have `mpif90` installed. The resulting executable is called `sample_pseudo_DM`. 
+Then, copy the provided test data (see below for a description)
 ```
-filename = 'list_of_sitearrays.txt'   ! Here, a subset of sites for sampling can be selected (currently not used)
-Nsites = 100                          ! Total number of sites 
-max_HS_samples = 10                   ! Read a maximum number of Green's functions from the files Green_ncpuXXXXX_up(dn).dat  
-Nsamples_per_HS = 5                   ! Generate `Nsamples_per_HS` number of occupation number snapshots per Green's function                   
-skip = 0                              ! Discard the first `skip` number of Green's function 
-
+cp _resources/U4.0_mu0.0_L12_beta4.0/Green_ncpu00000_*.dat .
 ```
 
 The equal-time Green's function in real space for spin up and spin down is assumed to be stored in 
@@ -42,6 +36,23 @@ by calling
 mpiexec.openmpi -np 1 ./sample_pseudo_DM
 ```
 (We have only one set of Green's functions as test data, so we use only one CPU here.)
+
+The number of snapshots to be generated can be set in the input file 
+`simparams.in`.
+```
+filename = 'list_of_sitearrays.txt'   ! Here, a subset of sites for sampling can be selected (currently not used)
+Nsites = 144                          ! Total number of sites 
+max_HS_samples = 25                   ! Read a maximum number of Green's functions from the files Green_ncpuXXXXX_up(dn).dat  
+Nsamples_per_HS = 10                  ! Generate `Nsamples_per_HS` number of occupation number snapshots per Green's function                   
+skip = 0                              ! Discard the first `skip` number of Green's function 
+
+```
+With the above settings 250 snapshots will be generated per CPU. 
+The snapshots will be written line-by-line into two synchronized files for spin up and spin down
+called `Fock_samples_ncpuXXXXX_up.dat` and `Fock_samples_ncpuXXXXX_dn.dat`. The first two entries 
+in each line are the sign and the reweighting factor. 
+Note that the ordering of sites in a line is the same as the ordering used to write the 
+Green's function matrix in real space.
 
 
 Interfacing with the QUantum Electron Simulation Toolbox (QUEST) DQMC code:
