@@ -9,15 +9,24 @@ The code can be used in two forms, either
 1. as a stand-alone code, which uses as input the Green's functions which have been output and written 
    on disk during a previous DQMC run or 
 2. directly called from a DQMC code so that fermionic snapshots are output "on the fly".    
+
 The two use cases are descibed in the following.
 
 Reading Green's function from a previous DQMC run:
 --------------------------------------------------
 
 `simparams.in`
+```
+filename = 'list_of_sitearrays.txt'   ! Here, a subset of sites for sampling can be selected (currently not used)
+Nsites = 100                          ! Total number of sites 
+max_HS_samples = 10                   ! Read a maximum number of Green's functions from the files Green_ncpuXXXXX_up(dn).dat  
+Nsamples_per_HS = 5                   ! Generate `Nsamples_per_HS` number of occupation number snapshots per Green's function                   
+skip = 0                              ! Discard the first `skip` number of Green's function 
 
-The equal-time Green's function for spin up and spin down is assumed to be stored in 
-the files `Green_ncpu00000_up.dat` and `Green_ncpu00000_dn.dat`. The two files contains a stream 
+```
+
+The equal-time Green's function in real space for spin up and spin down is assumed to be stored in 
+the files `Green_ncpu00000_up.dat` and `Green_ncpu00000_dn.dat`. The two files contain a stream 
 of Green's function matrices for spin up and spin down in a synchronized fashion, i.e. the n-th 
 Green's function in the "up-file" must be combined with the n-th Green's function in the "down-file". 
 Successive Green's functions are separated by two empty lines.
