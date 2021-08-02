@@ -1,6 +1,6 @@
 # sample-pseudoDM-fortran
 
-<img "_resources/titlepage.pdf" width="400">
+<img "_resources/titlepage.png" width="400">
 
 Subroutines for nested componentwise direct sampling for occupation number states from pseudo free fermion density matrices 
 as they arise naturally in finite-temperature determinantal QMC simulations.
