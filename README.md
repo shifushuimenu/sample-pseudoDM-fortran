@@ -67,7 +67,8 @@ When calculating any quantity from the pseudo-snapshots they need to be weighted
 
 Visualizing the generated pseudo-snapshots:
 -------------------------------------------
-After completing the above steps, we can visualize the pseudo-snapshots.
+After completing the above steps, we can visualize the pseudo-snapshots. The python script illustrates 
+how to combine pseudo-snapshots for spin up and down. 
 ```
 cp _resources/visualization/show_movie.py .
 python show_movie.py
