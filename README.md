@@ -54,6 +54,26 @@ in each line are the sign and the reweighting factor.
 Note that the ordering of sites in a line is the same as the ordering used to write the 
 Green's function matrix in real space.
 
+The meaning of a line in the output files is as follows
+```
+1.0       1.0        0.0        1.253               1 0 0 1 1 0 0 1 1 1 1 0 0 1 0 1 ...
+BSS_sign  Re(phase)  Im(phase)  reweighting_factor  occupation_vector(1:N_sites)
+```
+`BSS_sign` = sign(det(GF_up) * det(GF_dn)) is the sign of the current Green's function from which 
+the sample was drawn. If the Hamiltionian is sign-problem free, it is equal to one. If there is a sign problem,
+you need to calculate this one (the code does not do it right now). `Re(phase)` and `Im(phase)` give the 
+phase of the pseudo-snapshot (note that for sampling in momentum space there is a *phase problem*). 
+When calculating any quantity from the pseudo-snapshots they need to be weighted by `reweighting_factor`. 
+
+Visualizing the generated pseudo-snapshots:
+-------------------------------------------
+After completing the above steps, we can visualize the pseudo-snapshots. The python script illustrates 
+how to combine pseudo-snapshots for spin up and down. 
+```
+cp _resources/visualization/show_movie.py .
+python show_movie.py
+```
+
 
 Interfacing with the QUantum Electron Simulation Toolbox (QUEST) DQMC code:
 ----------------------------------------------------------------------------
@@ -69,8 +89,11 @@ so in the subroutine `DQMC_Phy0_Meas`:
            MPI_rank=qmc_sim%rank )
 
 
-Then it will write the snapshots for spin-up and spin-down in two "synchronized" files together
-with the sign and reweighting factor.
+Then it will write the pseudo-napshots for spin-up and spin-down in two "synchronized" files together
+with the sign (or phase factor) and reweighting factor.
+
+
+
 
 If you use this code, please cite:
 ----------------------------------
