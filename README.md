@@ -89,7 +89,7 @@ so in the subroutine `DQMC_Phy0_Meas`:
 
 
 Then it will write the pseudo-napshots for spin-up and spin-down in two "synchronized" files together
-with the sign and reweighting factor.
+with the sign (or phase factor) and reweighting factor.
 
 
 
