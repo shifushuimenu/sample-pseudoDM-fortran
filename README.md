@@ -75,6 +75,9 @@ with the sign and reweighting factor.
 
 Visualizing the pseudo-snapshots:
 ---------------------------------
+```
+python show_movie.py
+```
 
 If you use this code, please cite:
 ----------------------------------
