@@ -577,6 +577,7 @@ program sample_kspace
     integer :: skip
     integer, parameter :: Nspin_species = 2
 
+    real(dp) :: BSS_sign
     integer, allocatable :: occ_vector_tmp(:,:)
     complex(dp), allocatable :: weight_phase_tmp(:)
     real(dp), allocatable :: weight_factor_tmp(:)
@@ -651,7 +652,13 @@ program sample_kspace
 
                 open(100, file="Fock_samples_ncpu"//chr_rank//chr_spin(spin_idx)//".dat", status="unknown", position="append")
                 do sss = 1, Nsamples_per_HS
-                    write(100, *) 1.0, 1.0, real(weight_phase_tmp(sss)), aimag(weight_phase_tmp(sss)), &
+                    ! We assume here that the Hamiltonian is such that the DQMC algorithm itself has no sign problem, 
+                    ! i.e. BSS_sign = 1.0.
+                    ! If this is not the case, then please calculate the sign of each Hubbard-Stratonovich configuration
+                    ! as follows: BSS_sign = sign(det(GF_up) * det(GF_dn)) where GF_up/dn is the Green's function for spin up 
+                    ! and down respectively. 
+                    BSS_sign = 1.0_dp
+                    write(100, *) BSS_sign, real(weight_phase_tmp(sss)), aimag(weight_phase_tmp(sss)), &
                                   weight_factor_tmp(sss), occ_vector_tmp(:, sss)
                 enddo 
                 close(100)
